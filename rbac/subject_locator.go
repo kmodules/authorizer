@@ -18,11 +18,12 @@ limitations under the License.
 package rbac
 
 import (
+	rbacregistryvalidation "kmodules.xyz/authorizer/rbac/validation"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 )
 
 type RoleToRuleMapper interface {

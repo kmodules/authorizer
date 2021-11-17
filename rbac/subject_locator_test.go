@@ -20,10 +20,11 @@ import (
 	"reflect"
 	"testing"
 
+	rbacregistryvalidation "kmodules.xyz/authorizer/rbac/validation"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 )
 
 func TestSubjectLocator(t *testing.T) {

@@ -22,13 +22,13 @@ import (
 	"strings"
 	"testing"
 
+	rbacv1helpers "kmodules.xyz/authorizer/rbac/helpers"
+	rbacregistryvalidation "kmodules.xyz/authorizer/rbac/validation"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
-	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
-	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 )
 
 func newRule(verbs, apiGroups, resources, nonResourceURLs string) rbacv1.PolicyRule {
@@ -80,6 +80,7 @@ func newClusterRoleBinding(roleName string, subjects ...string) *rbacv1.ClusterR
 	return r
 }
 
+//nolint:unparam
 func newRoleBinding(namespace, roleName string, bindType uint16, subjects ...string) *rbacv1.RoleBinding {
 	r := &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Namespace: namespace}}
 
@@ -440,85 +441,4 @@ func (r *requestAttributeBuilder) URL(url string) *requestAttributeBuilder {
 
 func (r *requestAttributeBuilder) New() authorizer.AttributesRecord {
 	return r.request
-}
-
-func BenchmarkAuthorize(b *testing.B) {
-	bootstrapRoles := []rbacv1.ClusterRole{}
-	bootstrapRoles = append(bootstrapRoles, bootstrappolicy.ControllerRoles()...)
-	bootstrapRoles = append(bootstrapRoles, bootstrappolicy.ClusterRoles()...)
-
-	bootstrapBindings := []rbacv1.ClusterRoleBinding{}
-	bootstrapBindings = append(bootstrapBindings, bootstrappolicy.ClusterRoleBindings()...)
-	bootstrapBindings = append(bootstrapBindings, bootstrappolicy.ControllerRoleBindings()...)
-
-	clusterRoles := []*rbacv1.ClusterRole{}
-	for i := range bootstrapRoles {
-		clusterRoles = append(clusterRoles, &bootstrapRoles[i])
-	}
-	clusterRoleBindings := []*rbacv1.ClusterRoleBinding{}
-	for i := range bootstrapBindings {
-		clusterRoleBindings = append(clusterRoleBindings, &bootstrapBindings[i])
-	}
-
-	_, resolver := rbacregistryvalidation.NewTestRuleResolver(nil, nil, clusterRoles, clusterRoleBindings)
-
-	authz := New(resolver, resolver, resolver, resolver)
-
-	nodeUser := &user.DefaultInfo{Name: "system:node:node1", Groups: []string{"system:nodes", "system:authenticated"}}
-	requests := []struct {
-		name  string
-		attrs authorizer.Attributes
-	}{
-		{
-			"allow list pods",
-			authorizer.AttributesRecord{
-				ResourceRequest: true,
-				User:            nodeUser,
-				Verb:            "list",
-				Resource:        "pods",
-				Subresource:     "",
-				Name:            "",
-				Namespace:       "",
-				APIGroup:        "",
-				APIVersion:      "v1",
-			},
-		},
-		{
-			"allow update pods/status",
-			authorizer.AttributesRecord{
-				ResourceRequest: true,
-				User:            nodeUser,
-				Verb:            "update",
-				Resource:        "pods",
-				Subresource:     "status",
-				Name:            "mypods",
-				Namespace:       "myns",
-				APIGroup:        "",
-				APIVersion:      "v1",
-			},
-		},
-		{
-			"forbid educate dolphins",
-			authorizer.AttributesRecord{
-				ResourceRequest: true,
-				User:            nodeUser,
-				Verb:            "educate",
-				Resource:        "dolphins",
-				Subresource:     "",
-				Name:            "",
-				Namespace:       "",
-				APIGroup:        "",
-				APIVersion:      "v1",
-			},
-		},
-	}
-
-	b.ResetTimer()
-	for _, request := range requests {
-		b.Run(request.name, func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
-				authz.Authorize(context.Background(), request.attrs)
-			}
-		})
-	}
 }

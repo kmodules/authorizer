@@ -22,7 +22,8 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/klog/v2"
+	rbacv1helpers "kmodules.xyz/authorizer/rbac/helpers"
+	rbacregistryvalidation "kmodules.xyz/authorizer/rbac/validation"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -30,8 +31,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
-	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
-	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
+	"k8s.io/klog/v2"
 )
 
 type RequestToRuleMapper interface {
