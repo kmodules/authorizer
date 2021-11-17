@@ -16,6 +16,93 @@ limitations under the License.
 
 package main
 
-func main() {
+import (
+	"context"
+	"flag"
+	"fmt"
+	"os"
+	"time"
 
+	"kmodules.xyz/authorizer/rbac"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/klog/v2/klogr"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+)
+
+var (
+	scheme   = runtime.NewScheme()
+	setupLog = ctrl.Log.WithName("setup")
+)
+
+func init() {
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+}
+
+func main() {
+	var metricsAddr string
+	var enableLeaderElection bool
+	var probeAddr string
+	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
+		"Enable leader election for controller manager. "+
+			"Enabling this will ensure there is only one active controller manager.")
+	flag.Parse()
+
+	ctrl.SetLogger(klogr.New())
+
+	ctx := ctrl.SetupSignalHandler()
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Scheme:                 scheme,
+		MetricsBindAddress:     metricsAddr,
+		Port:                   9443,
+		HealthProbeBindAddress: probeAddr,
+		LeaderElection:         enableLeaderElection,
+		LeaderElectionID:       "5b87adeb.rbac.authorizer.k8s.io",
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to set up health check")
+		os.Exit(1)
+	}
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to set up ready check")
+		os.Exit(1)
+	}
+
+	_ = mgr.Add(manager.RunnableFunc(func(ctx context.Context) error {
+		time.Sleep(2 * time.Second)
+
+		rbacAuthorizer := rbac.NewForManagerOrDie(ctx, mgr)
+		attrs := authorizer.AttributesRecord{User: &user.DefaultInfo{Groups: []string{"system:masters"}}, Verb: "get", Path: "/apis"}
+		decision, str, err := rbacAuthorizer.Authorize(context.TODO(), attrs)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("decision: %s, explanation: %s", DecisionString(decision), str)
+		return nil
+	}))
+
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctx); err != nil {
+		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
+}
+
+func DecisionString(d authorizer.Decision) string {
+	return [...]string{"DecisionDeny", "DecisionAllow", "DecisionNoOpinion"}[d]
 }

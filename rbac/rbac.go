@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"reflect"
 
 	rbacv1helpers "kmodules.xyz/authorizer/rbac/helpers"
 	rbacregistryvalidation "kmodules.xyz/authorizer/rbac/validation"
@@ -31,7 +32,11 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 type RequestToRuleMapper interface {
@@ -163,6 +168,39 @@ func New(roles rbacregistryvalidation.RoleGetter, roleBindings rbacregistryvalid
 		),
 	}
 	return authorizer
+}
+
+func NewForManagerOrDie(ctx context.Context, mgr manager.Manager) *RBACAuthorizer {
+	return New(
+		&RoleGetter{Lister: rbaclisters.NewRoleLister(mustGetIndexer(ctx, mgr, &rbacv1.Role{}))},
+		&RoleBindingLister{Lister: rbaclisters.NewRoleBindingLister(mustGetIndexer(ctx, mgr, &rbacv1.RoleBinding{}))},
+		&ClusterRoleGetter{Lister: rbaclisters.NewClusterRoleLister(mustGetIndexer(ctx, mgr, &rbacv1.ClusterRole{}))},
+		&ClusterRoleBindingLister{Lister: rbaclisters.NewClusterRoleBindingLister(mustGetIndexer(ctx, mgr, &rbacv1.ClusterRoleBinding{}))},
+	)
+}
+
+func getIndexer(ctx context.Context, mgr ctrl.Manager, obj client.Object) (cache.Indexer, error) {
+	i, err := mgr.GetCache().GetInformer(ctx, obj)
+	if err != nil {
+		return nil, err
+	}
+	if sii, ok := i.(indexerGetter); ok {
+		return sii.GetIndexer(), nil
+	}
+	return nil, fmt.Errorf("GetIndexer not implemeted by informer %s", reflect.TypeOf(i))
+}
+
+func mustGetIndexer(ctx context.Context, mgr ctrl.Manager, obj client.Object) cache.Indexer {
+	indexer, err := getIndexer(ctx, mgr, obj)
+	if err != nil {
+		panic(err)
+	}
+	return indexer
+}
+
+// indexerGetter provides get Indexers ability based on SharedInformer.
+type indexerGetter interface {
+	GetIndexer() cache.Indexer
 }
 
 func RulesAllow(requestAttributes authorizer.Attributes, rules ...rbacv1.PolicyRule) bool {
