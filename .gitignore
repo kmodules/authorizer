@@ -36,4 +36,4 @@ apiserver.local.config/**
 
 .DS_Store
 
-/vendor
+vendor

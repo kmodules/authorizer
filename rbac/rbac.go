@@ -34,7 +34,6 @@ import (
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -179,7 +178,7 @@ func NewForManagerOrDie(ctx context.Context, mgr manager.Manager) *RBACAuthorize
 	)
 }
 
-func getIndexer(ctx context.Context, mgr ctrl.Manager, obj client.Object) (cache.Indexer, error) {
+func getIndexer(ctx context.Context, mgr manager.Manager, obj client.Object) (cache.Indexer, error) {
 	i, err := mgr.GetCache().GetInformer(ctx, obj)
 	if err != nil {
 		return nil, err
@@ -190,7 +189,7 @@ func getIndexer(ctx context.Context, mgr ctrl.Manager, obj client.Object) (cache
 	return nil, fmt.Errorf("GetIndexer not implemeted by informer %s", reflect.TypeOf(i))
 }
 
-func mustGetIndexer(ctx context.Context, mgr ctrl.Manager, obj client.Object) cache.Indexer {
+func mustGetIndexer(ctx context.Context, mgr manager.Manager, obj client.Object) cache.Indexer {
 	indexer, err := getIndexer(ctx, mgr, obj)
 	if err != nil {
 		panic(err)
