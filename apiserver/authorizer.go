@@ -19,7 +19,6 @@ package apiserver
 import (
 	"context"
 	"errors"
-
 	authzv1 "k8s.io/api/authorization/v1"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,6 +29,10 @@ type APIAuthorizer struct {
 }
 
 var _ authorizer.Authorizer = &APIAuthorizer{}
+
+func New(c client.Client) *APIAuthorizer {
+	return &APIAuthorizer{c: c}
+}
 
 func (a APIAuthorizer) Authorize(ctx context.Context, attrs authorizer.Attributes) (authorizer.Decision, string, error) {
 	var sar authzv1.SubjectAccessReview
