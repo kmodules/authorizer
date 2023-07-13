@@ -46,7 +46,7 @@ endif
 ###
 
 SRC_PKGS := rbac
-SRC_DIRS := $(SRC_PKGS) demo
+SRC_DIRS := $(SRC_PKGS) demo *.go
 
 DOCKER_PLATFORMS := linux/amd64 linux/arm linux/arm64
 BIN_PLATFORMS    := $(DOCKER_PLATFORMS)
