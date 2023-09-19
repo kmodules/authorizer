@@ -45,7 +45,7 @@ endif
 ### These variables should not need tweaking.
 ###
 
-SRC_PKGS := rbac
+SRC_PKGS := apiserver rbac
 SRC_DIRS := $(SRC_PKGS) demo *.go
 
 DOCKER_PLATFORMS := linux/amd64 linux/arm linux/arm64
@@ -58,7 +58,7 @@ ARCH := $(if $(GOARCH),$(GOARCH),$(shell go env GOARCH))
 BASEIMAGE_PROD   ?= gcr.io/distroless/static-debian11
 BASEIMAGE_DBG    ?= debian:bullseye
 
-GO_VERSION       ?= 1.20
+GO_VERSION       ?= 1.21
 BUILD_IMAGE      ?= ghcr.io/appscode/golang-dev:$(GO_VERSION)
 
 OUTBIN = bin/$(OS)_$(ARCH)/$(BIN)
