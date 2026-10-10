@@ -236,7 +236,8 @@ func TestAuthorizer(t *testing.T) {
 		{
 			// test subresource resolution
 			clusterRoles: []*rbacv1.ClusterRole{
-				newClusterRole("admin",
+				newClusterRole(
+					"admin",
 					newRule("*", "*", "pods/status", "*"),
 					newRule("*", "*", "*/scale", "*"),
 				),

@@ -154,7 +154,8 @@ type clusterRoleBindingDescriber struct {
 }
 
 func (d *clusterRoleBindingDescriber) String() string {
-	return fmt.Sprintf("ClusterRoleBinding %q of %s %q to %s",
+	return fmt.Sprintf(
+		"ClusterRoleBinding %q of %s %q to %s",
 		d.binding.Name,
 		d.binding.RoleRef.Kind,
 		d.binding.RoleRef.Name,
@@ -168,7 +169,8 @@ type roleBindingDescriber struct {
 }
 
 func (d *roleBindingDescriber) String() string {
-	return fmt.Sprintf("RoleBinding %q of %s %q to %s",
+	return fmt.Sprintf(
+		"RoleBinding %q of %s %q to %s",
 		d.binding.Name+"/"+d.binding.Namespace,
 		d.binding.RoleRef.Kind,
 		d.binding.RoleRef.Name,
